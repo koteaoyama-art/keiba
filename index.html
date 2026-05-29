@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オート競争グランプリ</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:#0a0e27;color:#e8eaf0;min-height:100vh;overflow-x:hidden;}
+#app{max-width:1100px;margin:0 auto;padding:10px;}
+
+/* タイトル画面 */
+#screen-title{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(180deg,#0a0e27 0%,#1a1040 40%,#2d1860 70%,#0a0e27 100%);position:relative;overflow:hidden;}
+.title-road{position:absolute;bottom:0;width:100%;height:180px;background:linear-gradient(0deg,#333 0%,#555 100%);perspective:400px;}
+.title-road::before{content:'';position:absolute;top:0;left:50%;width:4px;height:100%;background:repeating-linear-gradient(0deg,#ff0 0px,#ff0 20px,transparent 20px,transparent 40px);transform:translateX(-50%);animation:roadScroll 0.5s linear infinite;}
+@keyframes roadScroll{from{background-position:0 0;}to{background-position:0 40px;}}
+.title-rider{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);font-size:80px;animation:riderBounce 0.6s ease-in-out infinite alternate;}
+@keyframes riderBounce{from{transform:translateX(-50%) translateY(0);}to{transform:translateX(-50%) translateY(-8px);}}
+.title-text{z-index:10;text-align:center;margin-bottom:200px;}
+.title-text h1{font-size:48px;color:#f1c40f;text-shadow:0 0 20px rgba(241,196,15,0.6),2px 2px 4px #000;letter-spacing:6px;margin-bottom:10px;}
+.title-text .sub{font-size:16px;color:#ccc;letter-spacing:3px;}
+.title-start-btn{z-index:10;margin-top:-100px;padding:18px 60px;font-size:22px;background:linear-gradient(90deg,#e74c3c,#c0392b);color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:bold;letter-spacing:3px;animation:pulse 1.5s ease-in-out infinite;transition:0.3s;}
+.title-start-btn:hover{transform:scale(1.05);box-shadow:0 0 30px rgba(231,76,60,0.6);}
+@keyframes pulse{0%,100%{box-shadow:0 0 10px rgba(231,76,60,0.4);}50%{box-shadow:0 0 25px rgba(231,76,60,0.8);}}
+
+/* 共通 */
+.screen{display:none;animation:fadeIn 0.4s ease-out;}
+.screen.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+.topbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;background:rgba(22,27,51,0.95);padding:12px 18px;border-radius:10px;margin-bottom:10px;border:1px solid #2a3158;gap:8px;position:sticky;top:5px;z-index:100;}
+.money-box{font-size:20px;font-weight:bold;color:#f1c40f;text-shadow:0 0 10px rgba(241,196,15,0.4);}
+.week-box{font-size:14px;color:#aaa;}
+.points-box{font-size:14px;color:#3498db;}
+
+.panel{background:#161b33;border:1px solid #2a3158;border-radius:12px;padding:20px;margin-bottom:15px;box-shadow:0 10px 30px rgba(0,0,0,0.3);}
+.panel h2{font-size:20px;margin-bottom:15px;padding-bottom:8px;border-bottom:2px solid #e74c3c;color:#fff;display:flex;align-items:center;gap:8px;}
+
+.btn{background:linear-gradient(90deg,#27ae60,#2ecc71);border:none;color:#fff;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer;transition:0.2s;display:inline-block;text-align:center;}
+.btn:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(46,204,113,0.4);filter:brightness(1.1);}
+.btn:active{transform:translateY(0);}
+.btn-red{background:linear-gradient(90deg,#c0392b,#e74c3c);}
+.btn-blue{background:linear-gradient(90deg,#2980b9,#3498db);}
+.btn-gold{background:linear-gradient(90deg,#d4a017,#f1c40f);color:#000;}
+.btn-gray{background:#555;}
+.btn-purple{background:linear-gradient(90deg,#8e44ad,#9b59b6);}
+.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none !important;box-shadow:none !important;}
+
+/* ホーム画面 */
+.home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-top:15px;}
+.home-card{background:linear-gradient(135deg,#1c2340,#232b4d);border:2px solid #2d365e;border-radius:12px;padding:25px 15px;text-align:center;cursor:pointer;transition:0.3s;}
+.home-card:hover{border-color:#3498db;transform:translateY(-4px);box-shadow:0 8px 25px rgba(52,152,219,0.3);}
+.home-card .icon{font-size:40px;margin-bottom:10px;}
+.home-card .label{font-size:16px;font-weight:bold;}
+.home-card .desc{font-size:12px;color:#888;margin-top:5px;}
+
+/* バイク部品 */
+.parts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;}
+.part-card{background:#1c2340;border:1px solid #2d365e;border-radius:8px;padding:14px;transition:0.3s;}
+.part-card:hover{border-color:#3498db;background:#232b4d;}
+.part-name{font-weight:bold;font-size:15px;margin-bottom:4px;}
+.part-desc{font-size:12px;color:#888;margin-bottom:8px;}
+.part-effect{font-size:13px;color:#2ecc71;margin-bottom:4px;}
+.part-cost{font-size:13px;color:#f39c12;margin-bottom:8px;}
+.part-level{font-size:12px;color:#3498db;margin-bottom:6px;}
+
+.stat-row{margin-bottom:10px;}
+.stat-label{font-size:13px;margin-bottom:4px;display:flex;justify-content:space-between;}
+.bar-bg{background:#0a0e27;border-radius:6px;height:18px;overflow:hidden;border:1px solid #2a3158;}
+.bar-fill{height:100%;transition:width 0.6s cubic-bezier(0.175,0.885,0.32,1.275);}
+.bar-speed{background:linear-gradient(90deg,#e74c3c,#ff7979);}
+.bar-accel{background:linear-gradient(90deg,#f39c12,#ffeaa7);}
+.bar-handling{background:linear-gradient(90deg,#3498db,#74b9ff);}
+.bar-brake{background:linear-gradient(90deg,#9b59b6,#d6a4e8);}
+.bar-stability{background:linear-gradient(90deg,#1abc9c,#55efc4);}
+.bar-stamina{background:linear-gradient(90deg,#e67e22,#fab1a0);}
+
+/* メンテ選択 */
+.mech-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;}
+.mech-card{background:#1c2340;border:2px solid #2d365e;border-radius:10px;padding:18px;cursor:pointer;transition:0.3s;}
+.mech-card:hover{border-color:#f1c40f;}
+.mech-card.selected{border-color:#f1c40f;background:#2a2340;box-shadow:0 0 15px rgba(241,196,15,0.3);}
+.mech-name{font-size:18px;font-weight:bold;margin-bottom:5px;}
+.mech-specialty{font-size:13px;color:#3498db;margin-bottom:8px;}
+.mech-desc{font-size:12px;color:#999;line-height:1.5;}
+
+/* 勲章 */
+.trophy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;}
+.trophy-card{background:#1c2340;border:1px solid #2d365e;border-radius:10px;padding:15px;text-align:center;}
+.trophy-card .trophy-icon{font-size:50px;margin-bottom:8px;}
+.trophy-card .trophy-name{font-size:14px;font-weight:bold;margin-bottom:4px;}
+.trophy-card .trophy-date{font-size:11px;color:#888;}
+.trophy-card.locked{opacity:0.3;}
+
+/* ライバル詳細 */
+.rival-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;}
+.rival-card{background:#1c2340;border:1px solid #2d365e;border-radius:10px;padding:16px;transition:0.3s;}
+.rival-card:hover{border-color:#e74c3c;}
+.rival-name{font-size:18px;font-weight:bold;margin-bottom:3px;}
+.rival-title{font-size:12px;color:#f39c12;margin-bottom:8px;}
+.rival-ability{font-size:13px;color:#e74c3c;font-weight:bold;margin-bottom:6px;background:rgba(231,76,60,0.15);padding:4px 8px;border-radius:4px;display:inline-block;}
+.rival-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;margin-top:8px;}
+.rival-stats span{color:#aaa;}
+
+/* レース選択 */
+.race-list{display:grid;gap:12px;}
+.race-option{background:#1c2340;border:2px solid #2d365e;border-radius:10px;padding:18px;cursor:pointer;transition:0.3s;display:flex;justify-content:space-between;align-items:center;}
+.race-option:hover{border-color:#e74c3c;background:#232b4d;}
+.race-option.locked{opacity:0.4;cursor:not-allowed;}
+.race-grade{padding:4px 12px;border-radius:15px;font-weight:bold;font-size:13px;color:#fff;}
+.grade-IPPAN{background:#555;}
+.grade-GII{background:linear-gradient(90deg,#2980b9,#3498db);}
+.grade-GI{background:linear-gradient(90deg,#c0392b,#e74c3c);}
+.grade-SG{background:linear-gradient(90deg,#8e44ad,#9b59b6);border:1px solid #ddd;}
+
+/* レース画面 */
+#raceContainer{position:relative;width:100%;overflow:hidden;border-radius:12px;border:3px solid #2a3158;background:#0a3d18;}
+#raceCanvas{width:100%;display:block;}
+.commentary-box{background:rgba(0,0,0,0.85);color:#fff;padding:15px 25px;min-height:60px;display:flex;align-items:center;font-weight:bold;font-size:16px;line-height:1.4;border-left:6px solid #f1c40f;border-radius:0 0 12px 12px;text-shadow:1px 1px 2px #000;}
+
+/* テーブル */
+table{width:100%;border-collapse:collapse;background:#0f1428;border-radius:8px;overflow:hidden;}
+th,td{padding:10px 8px;text-align:center;border-bottom:1px solid #2a3158;font-size:13px;}
+th{background:#1e2544;color:#9aa4c7;font-weight:600;font-size:11px;text-transform:uppercase;}
+tr.player-row{background:rgba(52,152,219,0.15);border-left:4px solid #3498db;}
+.car-no{display:inline-block;width:28px;height:28px;line-height:28px;border-radius:5px;font-weight:bold;color:#fff;text-shadow:1px 1px 1px #000;}
+
+/* 投票 */
+.bet-tabs{display:flex;gap:4px;margin-bottom:15px;border-bottom:1px solid #2a3158;flex-wrap:wrap;}
+.bet-tab{padding:10px 18px;cursor:pointer;font-weight:bold;border-radius:8px 8px 0 0;background:#1c2340;color:#889;font-size:14px;}
+.bet-tab.active{background:#e74c3c;color:#fff;}
+.bet-selector-grid{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;}
+.car-btn{width:42px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:16px;cursor:pointer;border:2px solid transparent;transition:0.2s;color:#fff;}
+.car-btn.selected{transform:scale(1.1);border-color:#fff;box-shadow:0 0 15px #fff;}
+.bet-input-area{display:flex;align-items:center;gap:15px;background:#1c2340;padding:15px;border-radius:8px;margin-top:12px;flex-wrap:wrap;}
+input[type=number]{background:#0a0e27;border:1px solid #3498db;color:#fff;padding:10px;border-radius:6px;font-size:16px;width:130px;}
+
+/* 結果 */
+.payout-total{font-size:26px;color:#2ecc71;text-align:center;padding:20px;font-weight:bold;background:rgba(46,204,113,0.1);border-radius:10px;}
+.payout-total.loss{color:#e74c3c;background:rgba(231,76,60,0.1);}
+
+/* 次の週 */
+.week-summary{text-align:center;padding:30px;}
+.week-summary h2{font-size:28px;color:#f1c40f;margin-bottom:20px;}
+.promotion-msg{font-size:20px;color:#2ecc71;margin:15px 0;padding:15px;background:rgba(46,204,113,0.1);border-radius:10px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- タイトル画面 -->
+<div class="screen active" id="screen-title">
+  <div class="title-text">
+    <h1>オート競争グランプリ</h1>
+    <div class="sub">AUTO RACE GRAND PRIX</div>
+  </div>
+  <button class="title-start-btn" onclick="game.startGame()">START</button>
+  <div class="title-road"></div>
+  <div class="title-rider">🏍️</div>
+</div>
+
+<!-- トップバー (ホーム以降で表示) -->
+<div id="topbar" class="topbar" style="display:none;">
+  <div class="money-box">所持金 <span id="money">¥1,000,000</span></div>
+  <div class="points-box">競争得点 <span id="pointsDisplay">50.00</span></div>
+  <div class="week-box">第<span id="weekNum">1</span>週 / <span id="currentGrade">一般戦</span></div>
+</div>
+
+<!-- ホーム画面 -->
+<div class="screen" id="screen-home">
+  <div class="panel">
+    <h2>🏠 ホーム</h2>
+    <div style="font-size:14px;color:#aaa;margin-bottom:5px;">選手名: あなた / マシン: マッハブレイカー</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div class="stat-row"><div class="stat-label"><span>🏁 最高速</span><span id="h-speed">50</span></div><div class="bar-bg"><div class="bar-fill bar-speed" id="hbar-speed" style="width:50%"></div></div></div>
+      <div class="stat-row"><div class="stat-label"><span>⚡ 加速</span><span id="h-accel">50</span></div><div class="bar-bg"><div class="bar-fill bar-accel" id="hbar-accel" style="width:50%"></div></div></div>
+      <div class="stat-row"><div class="stat-label"><span>🔧 ハンドリング</span><span id="h-handling">50</span></div><div class="bar-bg"><div class="bar-fill bar-handling" id="hbar-handling" style="width:50%"></div></div></div>
+      <div class="stat-row"><div class="stat-label"><span>🛑 ブレーキ</span><span id="h-brake">50</span></div><div class="bar-bg"><div class="bar-fill bar-brake" id="hbar-brake" style="width:50%"></div></div></div>
+      <div class="stat-row"><div class="stat-label"><span>🌀 安定性</span><span id="h-stability">50</span></div><div class="bar-bg"><div class="bar-fill bar-stability" id="hbar-stability" style="width:50%"></div></div></div>
+      <div class="stat-row"><div class="stat-label"><span>💪 スタミナ</span><span id="h-stamina">50</span></div><div class="bar-bg"><div class="bar-fill bar-stamina" id="hbar-stamina" style="width:50%"></div></div></div>
+    </div>
+  </div>
+  <div class="home-grid">
+    <div class="home-card" onclick="game.goTo('bike')"><div class="icon">🏍️</div><div class="label">バイク整備</div><div class="desc">12種の部品を交換・強化</div></div>
+    <div class="home-card" onclick="game.goTo('mechanic')"><div class="icon">🔧</div><div class="label">メンテナンス員</div><div class="desc">整備士を選んで能力UP</div></div>
+    <div class="home-card" onclick="game.goTo('trophy')"><div class="icon">🏆</div><div class="label">勲章・優勝カップ</div><div class="desc">これまでの栄光</div></div>
+    <div class="home-card" onclick="game.goTo('rivals')"><div class="icon">👥</div><div class="label">SS級選手一覧</div><div class="desc">9人のライバル詳細</div></div>
+    <div class="home-card" onclick="game.goTo('raceselect')"><div class="icon">🏁</div><div class="label">レース選択</div><div class="desc">出走レースを選ぶ</div></div>
+  </div>
+</div>
+
+<!-- バイク整備画面 -->
+<div class="screen" id="screen-bike">
+  <div class="panel">
+    <h2>🏍️ バイク部品整備</h2>
+    <div style="font-size:13px;color:#aaa;margin-bottom:15px;">部品をアップグレードしてマシン性能を向上させましょう。レベルが上がるほど費用が増加します。</div>
+    <div class="parts-grid" id="partsGrid"></div>
+  </div>
+  <div style="text-align:center;"><button class="btn btn-gray" onclick="game.goTo('home')">◀ ホームに戻る</button></div>
+</div>
+
+<!-- メンテナンス員選択画面 -->
+<div class="screen" id="screen-mechanic">
+  <div class="panel">
+    <h2>🔧 メンテナンス員選択</h2>
+    <div style="font-size:13px;color:#aaa;margin-bottom:15px;">整備士を選んでレース前に整備してもらいましょう。整備士ごとに得意分野が異なります。</div>
+    <div class="mech-grid" id="mechGrid"></div>
+    <div style="text-align:center;margin-top:15px;">
+      <span style="font-size:14px;">現在の整備士: <b id="currentMech" style="color:#f1c40f;">未選択</b></span>
+    </div>
+  </div>
+  <div style="text-align:center;"><button class="btn btn-gray" onclick="game.goTo('home')">◀ ホームに戻る</button></div>
+</div>
+
+<!-- 勲章・優勝カップ画面 -->
+<div class="screen" id="screen-trophy">
+  <div class="panel">
+    <h2>🏆 勲章・優勝カップ</h2>
+    <div style="display:flex;gap:20px;margin-bottom:15px;flex-wrap:wrap;">
+      <div style="text-align:center;"><div style="font-size:32px;">🥇</div><div style="font-size:14px;">優勝 <b id="win1st" style="color:#f1c40f;">0</b>回</div></div>
+      <div style="text-align:center;"><div style="font-size:32px;">🥈</div><div style="font-size:14px;">2着 <b id="win2nd" style="color:#ccc;">0</b>回</div></div>
+      <div style="text-align:center;"><div style="font-size:32px;">🥉</div><div style="font-size:14px;">3着 <b id="win3rd" style="color:#cd7f32;">0</b>回</div></div>
+      <div style="text-align:center;"><div style="font-size:32px;">🏁</div><div style="font-size:14px;">出走 <b id="totalRaces">0</b>回</div></div>
+    </div>
+    <div class="trophy-grid" id="trophyGrid"></div>
+  </div>
+  <div style="text-align:center;"><button class="btn btn-gray" onclick="game.goTo('home')">◀ ホームに戻る</button></div>
+</div>
+
+<!-- SS級ライバル詳細画面 -->
+<div class="screen" id="screen-rivals">
+  <div class="panel">
+    <h2>👥 SS級選手一覧 (9人)</h2>
+    <div class="rival-grid" id="rivalGrid"></div>
+  </div>
+  <div style="text-align:center;"><button class="btn btn-gray" onclick="game.goTo('home')">◀ ホームに戻る</button></div>
+</div>
+
+<!-- レース選択画面 -->
+<div class="screen" id="screen-raceselect">
+  <div class="panel">
+    <h2>🏁 レース選択</h2>
+    <div style="font-size:13px;color:#aaa;margin-bottom:15px;">出走するレースを選んでください。上位グレードには競争得点が必要です。</div>
+    <div class="race-list" id="raceList"></div>
+  </div>
+  <div style="text-align:center;"><button class="btn btn-gray" onclick="game.goTo('home')">◀ ホームに戻る</button></div>
+</div>
+
+<!-- レース画面 (出走表 + 投票 + レース中継) -->
+<div class="screen" id="screen-race">
+  <!-- 出走表 -->
+  <div class="panel" id="entryPanel">
+    <h2 id="raceTitle">📋 出走表</h2>
+    <div style="overflow-x:auto;">
+      <table id="entryTable">
+        <thead><tr><th>車番</th><th>選手名 / 車名</th><th>ハンデ</th><th>試走T</th><th>特殊能力</th><th>単勝</th><th>複勝</th></tr></thead>
+        <tbody id="entryBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <!-- 投票 -->
+  <div class="panel" id="bettingPanel">
+    <h2>🎫 投票所</h2>
+    <div class="bet-tabs">
+      <div class="bet-tab active" id="tab-tan" onclick="game.switchBetMode('tan')">単勝</div>
+      <div class="bet-tab" id="tab-fuku" onclick="game.switchBetMode('fuku')">複勝</div>
+      <div class="bet-tab" id="tab-niren" onclick="game.switchBetMode('niren')">2連単</div>
+      <div class="bet-tab" id="tab-sanren" onclick="game.switchBetMode('sanren')">3連単</div>
+    </div>
+    <div id="bet-selector-area">
+      <p id="bet-instruction" style="font-size:13px;color:#aaa;margin-bottom:8px;">1着を選んでください</p>
+      <div class="bet-selector-grid" id="selector-row-1"></div>
+      <div id="selector-group-2" style="display:none;">
+        <p style="font-size:13px;color:#aaa;margin:8px 0;">2着を選んでください</p>
+        <div class="bet-selector-grid" id="selector-row-2"></div>
+      </div>
+      <div id="selector-group-3" style="display:none;">
+        <p style="font-size:13px;color:#aaa;margin:8px 0;">3着を選んでください</p>
+        <div class="bet-selector-grid" id="selector-row-3"></div>
+      </div>
+    </div>
+    <div class="bet-input-area">
+      <div>
+        <span style="font-size:14px;">投票額(円):</span><br>
+        <input type="number" id="betAmount" value="1000" min="100" step="100">
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:14px;margin-bottom:5px;">買い目: <span id="betSelectionDisplay" style="color:#f1c40f;font-weight:bold;">---</span></div>
+        <div style="font-size:14px;">予想オッズ: <span id="oddsDisplay" style="color:#2ecc71;font-weight:bold;">---</span></div>
+      </div>
+      <button class="btn btn-blue" onclick="game.addTicket()">車券購入</button>
+    </div>
+    <div style="margin-top:12px;border-top:1px solid #2a3158;padding-top:8px;">
+      <div style="font-size:14px;margin-bottom:6px;font-weight:bold;">購入済み:</div>
+      <div id="ticketList" style="max-height:100px;overflow-y:auto;font-size:13px;"></div>
+    </div>
+  </div>
+  <div style="text-align:center;display:flex;justify-content:center;gap:15px;margin-bottom:15px;">
+    <button class="btn btn-red" style="padding:15px 40px;font-size:18px;" onclick="game.startRace()">🏁 レーススタート!</button>
+    <button class="btn btn-gray" style="padding:15px 30px;font-size:16px;" onclick="game.goTo('raceselect')">◀ 戻る</button>
+  </div>
+  <!-- レース中継 -->
+  <div class="panel" style="padding:0;display:none;" id="raceViewPanel">
+    <div id="raceContainer">
+      <canvas id="raceCanvas" width="1000" height="500"></canvas>
+    </div>
+    <div class="commentary-box" id="commentary">実況: 各車、ハンデラインに並びます...</div>
+  </div>
+</div>
+
+<!-- 結果画面 -->
+<div class="screen" id="screen-result">
+  <div class="panel">
+    <h2 style="border-bottom-color:#f1c40f;">🏁 レース結果</h2>
+    <table id="resultTable">
+      <thead><tr><th>着</th><th>車番</th><th>選手名</th><th>タイム</th><th>備考</th></tr></thead>
+      <tbody id="resultBody"></tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>💰 払戻・収支報告</h2>
+    <div id="payoutDetail" style="margin-bottom:15px;font-size:14px;line-height:1.6;"></div>
+    <div class="payout-total" id="payoutTotal">合計払戻: ¥0</div>
+  </div>
+  <div style="text-align:center;">
+    <button class="btn btn-gold" style="padding:18px 50px;font-size:18px;" onclick="game.goToNextWeek()">次の週へ進む ▶</button>
+  </div>
+</div>
+
+<!-- 次の週画面 -->
+<div class="screen" id="screen-nextweek">
+  <div class="panel">
+    <div class="week-summary">
+      <h2 id="weekTitle">第1週 終了</h2>
+      <div id="weekResults" style="font-size:15px;line-height:1.8;margin:20px 0;"></div>
+      <div id="promotionMsg" class="promotion-msg" style="display:none;"></div>
+      <div style="margin-top:20px;">
+        <div style="font-size:16px;margin-bottom:10px;">競争得点: <b id="weekPoints" style="color:#3498db;">50.00</b></div>
+        <div style="font-size:14px;color:#aaa;" id="pointChange"></div>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center;">
+    <button class="btn btn-gold" style="padding:18px 50px;font-size:18px;" onclick="game.advanceWeek()">ホームへ戻る ▶</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+/** バイク部品定義 (12種) */
+const PARTS = [
+  {id:'engine',name:'エンジン本体',desc:'排気量600ccのレース用2ストエンジン。馬力の源。',stat:'speed',base:5,icon:'🔥',category:'エンジン系'},
+  {id:'crankshaft',name:'クランクシャフト',desc:'回転運動を伝えるエンジンの心臓部。高回転域での伸びに影響。',stat:'speed',base:3,icon:'⚙️',category:'エンジン系'},
+  {id:'carburetor',name:'キャブレター',desc:'燃料と空気の混合気を生成。スタートダッシュ力に直結。',stat:'accel',base:5,icon:'💨',category:'吸排気系'},
+  {id:'exhaust',name:'マフラー(排気管)',desc:'排気効率を高め加速レスポンスを向上させる。',stat:'accel',base:3,icon:'🔊',category:'吸排気系'},
+  {id:'frame',name:'フレーム',desc:'車体の骨格。軽量高剛性フレームで安定性が増す。',stat:'stability',base:4,icon:'🏗️',category:'車体系'},
+  {id:'suspension',name:'サスペンション',desc:'路面追従性を高め、コーナリング安定性を向上。',stat:'handling',base:5,icon:'🔩',category:'車体系'},
+  {id:'tire',name:'タイヤ',desc:'路面との唯一の接点。グリップ力がハンドリングに影響。',stat:'handling',base:4,icon:'⭕',category:'足回り'},
+  {id:'brake_pad',name:'ブレーキパッド',desc:'制動力を高め、コーナー手前での減速を鋭くする。',stat:'brake',base:5,icon:'🛑',category:'足回り'},
+  {id:'sprocket',name:'スプロケット',desc:'チェーンとの噛み合わせギア。加速と最高速のバランスを調整。',stat:'speed',base:3,icon:'🔗',category:'駆動系'},
+  {id:'clutch',name:'クラッチ',desc:'エンジン動力の断続。素早いシフトで加速力アップ。',stat:'accel',base:4,icon:'🎛️',category:'駆動系'},
+  {id:'fuel_tank',name:'燃料タンク',desc:'軽量タンクで全体重量を削減。スタミナにも影響。',stat:'stamina',base:5,icon:'⛽',category:'補機'},
+  {id:'cowling',name:'カウリング(整流カバー)',desc:'空気抵抗を低減し最高速域での伸びを向上させる。',stat:'stability',base:3,icon:'🛡️',category:'補機'}
+];
+
+/** メンテナンス員 */
+const MECHANICS = [
+  {id:'tanaka',name:'田中 誠一',specialty:'エンジンの鬼',desc:'エンジン系部品の整備効率+50%。最高速・加速の微調整が得意。',bonus:{speed:3,accel:2},cost:30000},
+  {id:'suzuki',name:'鈴木 勝彦',specialty:'足回りの匠',desc:'タイヤ・ブレーキ・サスの調整に長ける。ハンドリング・ブレーキ強化。',bonus:{handling:3,brake:2},cost:30000},
+  {id:'yamamoto',name:'山本 龍太',specialty:'セッティングの天才',desc:'全体バランスを見る名整備士。安定性・スタミナを底上げ。',bonus:{stability:3,stamina:2},cost:35000},
+  {id:'ito',name:'伊藤 美咲',specialty:'データ分析のプロ',desc:'試走データから最適セッティングを導く。全ステータス微増。',bonus:{speed:1,accel:1,handling:1,brake:1,stability:1,stamina:1},cost:40000}
+];
+
+/** SS級ライバル9人 (特殊能力付き) */
+const RIVALS = [
+  {name:'神山 周平',title:'絶対王者',car:'ハングオンキング',speed:88,accel:90,handling:85,brake:82,stability:86,stamina:84,color:'#e74c3c',
+   ability:'王者の威圧',abilityDesc:'レース中盤で全体を威圧し、周囲の加速を2%低下させる',abilityEffect:'intimidate'},
+  {name:'鈴木 彗星',title:'音速の貴公子',car:'スターピストン',speed:92,accel:86,handling:84,brake:80,stability:83,stamina:82,color:'#f39c12',
+   ability:'超音速スパート',abilityDesc:'最終周で最高速が5%上昇する',abilityEffect:'finalBoost'},
+  {name:'金剛 大介',title:'イン戦の鬼',car:'インサイドアタッカー',speed:80,accel:82,handling:92,brake:88,stability:90,stamina:85,color:'#27ae60',
+   ability:'神業イン突き',abilityDesc:'コーナーでハンドリングが8%上昇し内側から抜く',abilityEffect:'cornerBoost'},
+  {name:'佐藤 弾丸',title:'スタートの閃光',car:'ベットオンフラッシュ',speed:83,accel:93,handling:80,brake:79,stability:81,stamina:80,color:'#9b59b6',
+   ability:'電光石火スタート',abilityDesc:'スタート時の加速が12%上昇する',abilityEffect:'rocketStart'},
+  {name:'荒木 聡',title:'雨の魔術師',car:'レインマスター',speed:82,accel:84,handling:86,brake:85,stability:88,stamina:86,color:'#16a085',
+   ability:'レインマスタリー',abilityDesc:'湿走路で全ステータスが6%上昇する',abilityEffect:'rainMaster'},
+  {name:'高橋 大帝',title:'不屈の帝王',car:'レジェンドカイザー',speed:86,accel:83,handling:87,brake:86,stability:85,stamina:90,color:'#d35400',
+   ability:'鉄人の根性',abilityDesc:'レース後半でスタミナ減少が50%軽減される',abilityEffect:'ironWill'},
+  {name:'中村 忍',title:'影の暗殺者',car:'サイレントシャドー',speed:84,accel:85,handling:88,brake:84,stability:87,stamina:83,color:'#7f8c8d',
+   ability:'ステルス走行',abilityDesc:'後方3番手以下の時、加速が4%上昇する',abilityEffect:'stealthRun'},
+  {name:'大和 翔太',title:'若き天才',car:'ライジングスター',speed:87,accel:88,handling:83,brake:81,stability:82,stamina:81,color:'#2980b9',
+   ability:'天才のひらめき',abilityDesc:'ランダムでレース中1回、全性能が3%上昇する瞬間がある',abilityEffect:'inspiration'},
+  {name:'黒崎 雷蔵',title:'雷鳴の破壊者',car:'サンダーボルト',speed:90,accel:87,handling:81,brake:83,stability:80,stamina:85,color:'#8e44ad',
+   ability:'雷神モード',abilityDesc:'先頭走行時、最高速が3%上昇し後続を突き放す',abilityEffect:'thunderMode'}
+];
+
+/** レースグレード */
+const GRADES = [
+  {id:'IPPAN',name:'一般戦',prize:[100000,40000,20000],pointReq:0,handiBase:10,rainProb:0.15},
+  {id:'GII',name:'GII レース',prize:[300000,120000,60000],pointReq:52,handiBase:8,rainProb:0.25},
+  {id:'GI',name:'GI レース',prize:[800000,350000,150000],pointReq:55,handiBase:5,rainProb:0.35},
+  {id:'SG',name:'SG グランプリ',prize:[2000000,800000,400000],pointReq:58,handiBase:0,rainProb:0.45}
+];
+
+/** 勲章定義 */
+const TROPHIES = [
+  {id:'first_win',name:'初勝利',desc:'初めてレースで優勝',icon:'🏅',condition:g=>g.records.wins>=1},
+  {id:'win5',name:'5勝達成',desc:'通算5勝を達成',icon:'🎖️',condition:g=>g.records.wins>=5},
+  {id:'win10',name:'10勝達成',desc:'通算10勝を達成',icon:'🏆',condition:g=>g.records.wins>=10},
+  {id:'gii_win',name:'GII制覇',desc:'GIIレースで優勝',icon:'🥈',condition:g=>g.records.giiWin},
+  {id:'gi_win',name:'GI制覇',desc:'GIレースで優勝',icon:'🥇',condition:g=>g.records.giWin},
+  {id:'sg_win',name:'SG制覇',desc:'SGグランプリで優勝',icon:'👑',condition:g=>g.records.sgWin},
+  {id:'points60',name:'競争得点60突破',desc:'競争得点が60を超えた',icon:'📈',condition:g=>g.competitionPoints>=60},
+  {id:'millionaire',name:'百万長者',desc:'所持金が200万円を超えた',icon:'💰',condition:g=>g.money>=2000000},
+  {id:'perfect',name:'完全整備',desc:'全部品をLv5以上にした',icon:'🔧',condition:g=>Object.values(g.partLevels).every(v=>v>=5)},
+  {id:'streak3',name:'3連勝',desc:'3連勝を達成',icon:'🔥',condition:g=>g.records.streak>=3}
+];
+
+class AutoRaceGame {
+  constructor() {
+    this.money = 1000000;
+    this.week = 1;
+    this.competitionPoints = 50.0;
+    this.player = {speed:50,accel:50,handling:50,brake:50,stability:50,stamina:50};
+    this.partLevels = {};
+    PARTS.forEach(p => this.partLevels[p.id] = 0);
+    this.selectedMechanic = null;
+    this.records = {wins:0,second:0,third:0,total:0,giiWin:false,giWin:false,sgWin:false,streak:0,currentStreak:0,trophies:[]};
+    this.currentEntries = [];
+    this.currentGrade = null;
+    this.weather = 'good';
+    this.betMode = 'tan';
+    this.selectedCars = [null,null,null];
+    this.tickets = [];
+    this.lastRaceResult = null;
+    this.lastRaceRank = 0;
+  }
+
+  startGame() {
+    document.getElementById('topbar').style.display = 'flex';
+    this.showScreen('home');
+    this.updateAllUI();
+  }
+
+  showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById('screen-' + id);
+    if (el) el.classList.add('active');
+    if (id === 'title') {
+      document.getElementById('topbar').style.display = 'none';
+    }
+    window.scrollTo(0, 0);
+  }
+
+  goTo(screen) {
+    switch(screen) {
+      case 'home': this.updateAllUI(); this.showScreen('home'); break;
+      case 'bike': this.renderParts(); this.showScreen('bike'); break;
+      case 'mechanic': this.renderMechanics(); this.showScreen('mechanic'); break;
+      case 'trophy': this.renderTrophies(); this.showScreen('trophy'); break;
+      case 'rivals': this.renderRivals(); this.showScreen('rivals'); break;
+      case 'raceselect': this.renderRaceSelect(); this.showScreen('raceselect'); break;
+    }
+  }
+
+  updateAllUI() {
+    document.getElementById('money').innerText = `¥${this.money.toLocaleString()}`;
+    document.getElementById('weekNum').innerText = this.week;
+    document.getElementById('pointsDisplay').innerText = this.competitionPoints.toFixed(2);
+    const gradeLabel = this.competitionPoints >= 58 ? 'SG級' : this.competitionPoints >= 55 ? 'GI級' : this.competitionPoints >= 52 ? 'GII級' : '一般級';
+    document.getElementById('currentGrade').innerText = gradeLabel;
+    const stats = ['speed','accel','handling','brake','stability','stamina'];
+    stats.forEach(s => {
+      document.getElementById('h-' + s).innerText = Math.round(this.player[s]);
+      document.getElementById('hbar-' + s).style.width = this.player[s] + '%';
+    });
+  }
+
+  /** 競輪方式: 値が高いほど上がりにくい */
+  calcUpgradeAmount(currentVal, baseAmount) {
+    if (currentVal >= 99) return 0;
+    const ratio = currentVal / 100;
+    const diminish = Math.pow(1 - ratio, 1.8);
+    return Math.max(0.3, baseAmount * diminish);
+  }
+
+  /** 部品アップグレード費用: レベルが上がるほど高額 */
+  calcPartCost(part, level) {
+    const baseCost = 20000;
+    return Math.floor(baseCost * Math.pow(1.6, level) * (part.base / 3));
+  }
+
+  renderParts() {
+    const grid = document.getElementById('partsGrid');
+    grid.innerHTML = '';
+    PARTS.forEach(part => {
+      const lv = this.partLevels[part.id];
+      const cost = this.calcPartCost(part, lv);
+      const currentStatVal = this.player[part.stat];
+      const gain = this.calcUpgradeAmount(currentStatVal, part.base);
+      const maxed = currentStatVal >= 99 || lv >= 10;
+      const statNames = {speed:'最高速',accel:'加速力',handling:'ハンドリング',brake:'ブレーキ',stability:'安定性',stamina:'スタミナ'};
+
+      const div = document.createElement('div');
+      div.className = 'part-card';
+      div.innerHTML = `
+        <div class="part-name">${part.icon} ${part.name}</div>
+        <div style="font-size:11px;color:#666;margin-bottom:2px;">[${part.category}]</div>
+        <div class="part-desc">${part.desc}</div>
+        <div class="part-level">Lv.${lv} / 10</div>
+        <div class="part-effect">${statNames[part.stat]} +${gain.toFixed(1)}</div>
+        <div class="part-cost">費用: ¥${cost.toLocaleString()}</div>
+        <button class="btn${maxed ? '' : ' btn-blue'}" ${maxed ? 'disabled' : ''} onclick="game.upgradePart('${part.id}')">
+          ${maxed ? 'MAX' : '強化する'}
+        </button>
+      `;
+      grid.appendChild(div);
+    });
+  }
+
+  upgradePart(partId) {
+    const part = PARTS.find(p => p.id === partId);
+    const lv = this.partLevels[partId];
+    const cost = this.calcPartCost(part, lv);
+    if (this.money < cost) { alert('資金不足です'); return; }
+    if (lv >= 10 || this.player[part.stat] >= 99) return;
+    this.money -= cost;
+    const gain = this.calcUpgradeAmount(this.player[part.stat], part.base);
+    this.player[part.stat] = Math.min(99, this.player[part.stat] + gain);
+    this.partLevels[partId]++;
+    this.updateAllUI();
+    this.renderParts();
+  }
+
+  renderMechanics() {
+    const grid = document.getElementById('mechGrid');
+    grid.innerHTML = '';
+    MECHANICS.forEach(m => {
+      const div = document.createElement('div');
+      div.className = 'mech-card' + (this.selectedMechanic === m.id ? ' selected' : '');
+      const bonusText = Object.entries(m.bonus).map(([k,v]) => {
+        const names = {speed:'最高速',accel:'加速',handling:'ハンドリング',brake:'ブレーキ',stability:'安定性',stamina:'スタミナ'};
+        return `${names[k]}+${v}`;
+      }).join(', ');
+      div.innerHTML = `
+        <div class="mech-name">${m.name}</div>
+        <div class="mech-specialty">${m.specialty}</div>
+        <div class="mech-desc">${m.desc}</div>
+        <div style="margin-top:8px;font-size:13px;color:#2ecc71;">効果: ${bonusText}</div>
+        <div style="margin-top:4px;font-size:13px;color:#f39c12;">費用: ¥${m.cost.toLocaleString()}/レース</div>
+      `;
+      div.onclick = () => this.selectMechanic(m.id);
+      grid.appendChild(div);
+    });
+    document.getElementById('currentMech').innerText = this.selectedMechanic
+      ? MECHANICS.find(m => m.id === this.selectedMechanic).name : '未選択';
+  }
+
+  selectMechanic(id) {
+    this.selectedMechanic = id;
+    this.renderMechanics();
+  }
+
+  renderTrophies() {
+    document.getElementById('win1st').innerText = this.records.wins;
+    document.getElementById('win2nd').innerText = this.records.second;
+    document.getElementById('win3rd').innerText = this.records.third;
+    document.getElementById('totalRaces').innerText = this.records.total;
+    const grid = document.getElementById('trophyGrid');
+    grid.innerHTML = '';
+    TROPHIES.forEach(t => {
+      const earned = this.records.trophies.includes(t.id);
+      const div = document.createElement('div');
+      div.className = 'trophy-card' + (earned ? '' : ' locked');
+      div.innerHTML = `
+        <div class="trophy-icon">${t.icon}</div>
+        <div class="trophy-name">${t.name}</div>
+        <div style="font-size:11px;color:#aaa;">${t.desc}</div>
+        ${earned ? '<div class="trophy-date" style="color:#2ecc71;margin-top:4px;">取得済</div>' : '<div class="trophy-date">未取得</div>'}
+      `;
+      grid.appendChild(div);
+    });
+  }
+
+  renderRivals() {
+    const grid = document.getElementById('rivalGrid');
+    grid.innerHTML = '';
+    RIVALS.forEach((r, i) => {
+      const div = document.createElement('div');
+      div.className = 'rival-card';
+      div.style.borderLeftColor = r.color;
+      div.style.borderLeftWidth = '4px';
+      div.innerHTML = `
+        <div class="rival-name" style="color:${r.color};">${i+1}. ${r.name}</div>
+        <div class="rival-title">${r.title}</div>
+        <div style="font-size:13px;color:#aaa;margin-bottom:6px;">マシン: ${r.car}</div>
+        <div class="rival-ability">🔥 ${r.ability}</div>
+        <div style="font-size:12px;color:#ccc;margin:4px 0 8px;">${r.abilityDesc}</div>
+        <div class="rival-stats">
+          <span>最高速: <b style="color:#e74c3c;">${r.speed}</b></span>
+          <span>加速: <b style="color:#f39c12;">${r.accel}</b></span>
+          <span>ハンドリング: <b style="color:#3498db;">${r.handling}</b></span>
+          <span>ブレーキ: <b style="color:#9b59b6;">${r.brake}</b></span>
+          <span>安定性: <b style="color:#1abc9c;">${r.stability}</b></span>
+          <span>スタミナ: <b style="color:#e67e22;">${r.stamina}</b></span>
+        </div>
+      `;
+      grid.appendChild(div);
+    });
+  }
+
+  renderRaceSelect() {
+    const list = document.getElementById('raceList');
+    list.innerHTML = '';
+    GRADES.forEach(g => {
+      const canEnter = this.competitionPoints >= g.pointReq;
+      const div = document.createElement('div');
+      div.className = 'race-option' + (canEnter ? '' : ' locked');
+      div.innerHTML = `
+        <div>
+          <span class="race-grade grade-${g.id}">${g.name}</span>
+          <div style="font-size:13px;color:#aaa;margin-top:6px;">賞金: 1着 ¥${g.prize[0].toLocaleString()} / 2着 ¥${g.prize[1].toLocaleString()} / 3着 ¥${g.prize[2].toLocaleString()}</div>
+          ${!canEnter ? `<div style="font-size:12px;color:#e74c3c;margin-top:4px;">必要得点: ${g.pointReq.toFixed(2)}</div>` : ''}
+        </div>
+        <div>
+          ${canEnter ? '<span style="color:#2ecc71;font-size:14px;">出走可能</span>' : '<span style="color:#e74c3c;font-size:14px;">🔒</span>'}
+        </div>
+      `;
+      if (canEnter) {
+        div.onclick = () => this.selectRace(g);
+      }
+      list.appendChild(div);
+    });
+  }
+
+  selectRace(grade) {
+    this.currentGrade = grade;
+    if (this.selectedMechanic) {
+      const mech = MECHANICS.find(m => m.id === this.selectedMechanic);
+      if (this.money < mech.cost) {
+        alert(`整備士費用 ¥${mech.cost.toLocaleString()} が不足しています`);
+        return;
+      }
+      this.money -= mech.cost;
+    }
+    this.setupRace();
+    this.showScreen('race');
+    document.getElementById('entryPanel').style.display = 'block';
+    document.getElementById('bettingPanel').style.display = 'block';
+    document.getElementById('raceViewPanel').style.display = 'none';
+  }
+
+  setupRace() {
+    const grade = this.currentGrade;
+    this.weather = Math.random() < grade.rainProb ? 'wet' : 'good';
+    this.currentEntries = [];
+    this.tickets = [];
+    document.getElementById('ticketList').innerHTML = '';
+
+    // メンテナンスボーナス計算
+    let mechBonus = {speed:0,accel:0,handling:0,brake:0,stability:0,stamina:0};
+    if (this.selectedMechanic) {
+      const mech = MECHANICS.find(m => m.id === this.selectedMechanic);
+      Object.entries(mech.bonus).forEach(([k,v]) => mechBonus[k] = v);
+    }
+
+    // プレイヤー
+    this.currentEntries.push({
+      no:1, name:'あなた', car:'マッハブレイカー',
+      speed: Math.min(99, this.player.speed + mechBonus.speed),
+      accel: Math.min(99, this.player.accel + mechBonus.accel),
+      handling: Math.min(99, this.player.handling + mechBonus.handling),
+      brake: Math.min(99, this.player.brake + mechBonus.brake),
+      stability: Math.min(99, this.player.stability + mechBonus.stability),
+      stamina: Math.min(99, this.player.stamina + mechBonus.stamina),
+      color:'#3498db', handi:0, isPlayer:true,
+      ability:null, abilityEffect:null, condition: 0.95 + Math.random()*0.1
+    });
+
+    // ライバル8人選出
+    const shuffled = [...RIVALS].sort(() => Math.random() - 0.5).slice(0, 8);
+    shuffled.forEach((r, i) => {
+      const handi = (grade.id === 'SG') ? 0 : (i + 1) * grade.handiBase;
+      this.currentEntries.push({
+        no: i + 2, name: r.name, car: r.car,
+        speed: r.speed, accel: r.accel, handling: r.handling,
+        brake: r.brake, stability: r.stability, stamina: r.stamina,
+        color: r.color, handi: handi, isPlayer: false,
+        ability: r.ability, abilityEffect: r.abilityEffect, abilityDesc: r.abilityDesc,
+        condition: 0.92 + Math.random() * 0.16
+      });
+    });
+
+    this.calculateOdds();
+    this.renderEntryTable();
+    this.switchBetMode('tan');
+
+    document.getElementById('raceTitle').innerHTML = `📋 ${grade.name} 出走表 (天候: ${this.weather === 'wet' ? '☔湿走路' : '☀良走路'})`;
+  }
+
+  calculateOdds() {
+    this.currentEntries.forEach(e => {
+      let power = (e.speed * 0.25 + e.accel * 0.25 + e.handling * 0.2 + e.brake * 0.1 + e.stability * 0.1 + e.stamina * 0.1);
+      power *= e.condition;
+      if (this.weather === 'wet') {
+        if (e.abilityEffect === 'rainMaster') power *= 1.06;
+        else power *= 0.92;
+      }
+      power -= e.handi * 0.3;
+      e.powerScore = power;
+
+      // 試走タイム
+      const baseTrial = 3.40;
+      e.trial = (baseTrial - power * 0.003 + (Math.random() * 0.04 - 0.02)).toFixed(2);
+    });
+
+    const totalPow = this.currentEntries.reduce((s, e) => s + Math.exp(e.powerScore * 0.06), 0);
+    this.currentEntries.forEach(e => {
+      e.winProb = Math.exp(e.powerScore * 0.06) / totalPow;
+      // 低めの倍率設定
+      e.oddsTan = Math.max(1.1, (0.78 / e.winProb)).toFixed(1);
+      e.oddsFuku = Math.max(1.0, (0.78 / (e.winProb * 2.8))).toFixed(1);
+    });
+  }
+
+  renderEntryTable() {
+    const body = document.getElementById('entryBody');
+    body.innerHTML = '';
+    this.currentEntries.forEach(e => {
+      const tr = document.createElement('tr');
+      if (e.isPlayer) tr.className = 'player-row';
+      const condText = e.condition > 1.02 ? '◎絶好調' : e.condition > 0.97 ? '○好調' : e.condition > 0.93 ? '△普通' : '▽不調';
+      tr.innerHTML = `
+        <td><span class="car-no" style="background:${e.color}">${e.no}</span></td>
+        <td style="text-align:left;"><b>${e.name}</b><br><small style="color:#888;">${e.car}</small></td>
+        <td>${e.handi}m</td>
+        <td>${e.trial}</td>
+        <td style="font-size:11px;color:#e74c3c;">${e.ability || '-'}</td>
+        <td style="color:#f1c40f;font-weight:bold;">${e.oddsTan}</td>
+        <td style="color:#f1c40f;">${e.oddsFuku}</td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+
+  switchBetMode(mode) {
+    this.betMode = mode;
+    this.selectedCars = [null, null, null];
+    ['tan','fuku','niren','sanren'].forEach(t => {
+      const el = document.getElementById('tab-' + t);
+      if (el) el.classList.toggle('active', t === mode);
+    });
+    document.getElementById('selector-group-2').style.display = (mode === 'niren' || mode === 'sanren') ? 'block' : 'none';
+    document.getElementById('selector-group-3').style.display = mode === 'sanren' ? 'block' : 'none';
+    this.renderCarSelectors();
+    this.updateBetDisplay();
+  }
+
+  renderCarSelectors() {
+    [1,2,3].forEach(r => {
+      const el = document.getElementById('selector-row-' + r);
+      if (!el) return;
+      el.innerHTML = '';
+      this.currentEntries.forEach(e => {
+        const div = document.createElement('div');
+        div.className = 'car-btn' + (this.selectedCars[r-1] === e.no ? ' selected' : '');
+        div.style.background = e.color;
+        div.innerText = e.no;
+        div.onclick = () => {
+          this.selectedCars[r-1] = e.no;
+          this.renderCarSelectors();
+          this.updateBetDisplay();
+        };
+        el.appendChild(div);
+      });
+    });
+  }
+
+  updateBetDisplay() {
+    let txt = '---', odds = '---';
+    const [s1, s2, s3] = this.selectedCars;
+    const e1 = this.currentEntries.find(e => e.no === s1);
+    const e2 = this.currentEntries.find(e => e.no === s2);
+    const e3 = this.currentEntries.find(e => e.no === s3);
+
+    if (this.betMode === 'tan' && s1) {
+      txt = `単勝 ${s1}`;
+      odds = e1.oddsTan + '倍';
+    } else if (this.betMode === 'fuku' && s1) {
+      txt = `複勝 ${s1}`;
+      odds = e1.oddsFuku + '倍';
+    } else if (this.betMode === 'niren' && s1 && s2 && s1 !== s2) {
+      txt = `2連単 ${s1}-${s2}`;
+      const prob2 = e1.winProb * (e2.winProb / (1 - e1.winProb));
+      odds = Math.max(2.0, (0.72 / prob2)).toFixed(1) + '倍';
+    } else if (this.betMode === 'sanren' && s1 && s2 && s3 && s1 !== s2 && s2 !== s3 && s1 !== s3) {
+      txt = `3連単 ${s1}-${s2}-${s3}`;
+      const prob3 = e1.winProb * (e2.winProb / (1 - e1.winProb)) * (e3.winProb / (1 - e1.winProb - e2.winProb));
+      odds = Math.max(5.0, (0.65 / prob3)).toFixed(1) + '倍';
+    }
+
+    document.getElementById('betSelectionDisplay').innerText = txt;
+    document.getElementById('oddsDisplay').innerText = odds;
+  }
+
+  addTicket() {
+    const amt = parseInt(document.getElementById('betAmount').value);
+    const label = document.getElementById('betSelectionDisplay').innerText;
+    const oddsTxt = document.getElementById('oddsDisplay').innerText;
+    if (label === '---') { alert('買い目を選んでください'); return; }
+    if (isNaN(amt) || amt < 100) { alert('投票額は100円以上で入力してください'); return; }
+    if (amt > this.money) { alert('資金不足です'); return; }
+    this.money -= amt;
+    this.tickets.push({
+      mode: this.betMode,
+      selection: [...this.selectedCars],
+      amt: amt,
+      label: label,
+      odds: parseFloat(oddsTxt)
+    });
+    this.updateAllUI();
+    const div = document.createElement('div');
+    div.style.padding = '3px 0';
+    div.innerHTML = `🎟️ ${label} | ¥${amt.toLocaleString()} (${oddsTxt})`;
+    document.getElementById('ticketList').appendChild(div);
+  }
+
+  startRace() {
+    document.getElementById('entryPanel').style.display = 'none';
+    document.getElementById('bettingPanel').style.display = 'none';
+    document.getElementById('raceViewPanel').style.display = 'block';
+    window.scrollTo(0, 0);
+    const engine = new RaceEngine(this.currentEntries, this.weather, (res) => this.showResult(res));
+    engine.run();
+  }
+
+  showResult(result) {
+    this.lastRaceResult = result;
+    this.showScreen('result');
+    const body = document.getElementById('resultBody');
+    body.innerHTML = '';
+
+    const playerNo = 1;
+    const playerRank = result.findIndex(r => r.no === playerNo) + 1;
+    this.lastRaceRank = playerRank;
+    const g = this.currentGrade;
+    const prize = playerRank <= 3 ? g.prize[playerRank - 1] : 0;
+
+    result.forEach((r, idx) => {
+      const e = this.currentEntries.find(ent => ent.no === r.no);
+      const tr = document.createElement('tr');
+      if (e.isPlayer) tr.className = 'player-row';
+      tr.innerHTML = `
+        <td><b>${idx+1}</b></td>
+        <td><span class="car-no" style="background:${e.color}">${e.no}</span></td>
+        <td>${e.name}</td>
+        <td>${r.time}s</td>
+        <td>${idx === 0 ? '🏆 優勝' : e.ability ? '🔥' + e.ability : ''}</td>
+      `;
+      body.appendChild(tr);
+    });
+
+    let totalReturn = prize;
+    let details = `結果: 1着 ${result[0].no}番, 2着 ${result[1].no}番, 3着 ${result[2].no}番<br>`;
+    details += `あなたの順位: <b>${playerRank}着</b><br>`;
+    if (prize > 0) details += `<span style="color:#2ecc71;">💰 賞金: ¥${prize.toLocaleString()}</span><br>`;
+
+    this.tickets.forEach(t => {
+      const r1 = result[0].no, r2 = result[1].no, r3 = result[2].no;
+      const hit = (t.mode === 'tan' && t.selection[0] === r1) ||
+                  (t.mode === 'fuku' && [r1,r2,r3].includes(t.selection[0])) ||
+                  (t.mode === 'niren' && t.selection[0] === r1 && t.selection[1] === r2) ||
+                  (t.mode === 'sanren' && t.selection[0] === r1 && t.selection[1] === r2 && t.selection[2] === r3);
+      if (hit) {
+        const pay = Math.floor(t.amt * t.odds);
+        totalReturn += pay;
+        details += `<span style="color:#2ecc71;">🎯 的中! ${t.label} → ¥${pay.toLocaleString()}</span><br>`;
+      } else {
+        details += `<span style="color:#888;">✕ 不的中: ${t.label}</span><br>`;
+      }
+    });
+
+    this.money += totalReturn;
+
+    // 成績記録
+    this.records.total++;
+    if (playerRank === 1) {
+      this.records.wins++;
+      this.records.currentStreak++;
+      this.records.streak = Math.max(this.records.streak, this.records.currentStreak);
+      if (g.id === 'GII') this.records.giiWin = true;
+      if (g.id === 'GI') this.records.giWin = true;
+      if (g.id === 'SG') this.records.sgWin = true;
+    } else {
+      this.records.currentStreak = 0;
+    }
+    if (playerRank === 2) this.records.second++;
+    if (playerRank === 3) this.records.third++;
+
+    // 勲章チェック
+    TROPHIES.forEach(t => {
+      if (!this.records.trophies.includes(t.id) && t.condition(this)) {
+        this.records.trophies.push(t.id);
+        details += `<br><span style="color:#f1c40f;font-size:16px;">🏅 勲章獲得: ${t.name}!</span>`;
+      }
+    });
+
+    document.getElementById('payoutDetail').innerHTML = details;
+    const totalEl = document.getElementById('payoutTotal');
+    totalEl.innerText = `合計収入: ¥${totalReturn.toLocaleString()}`;
+    totalEl.className = 'payout-total' + (totalReturn === 0 ? ' loss' : '');
+    this.updateAllUI();
+  }
+
+  goToNextWeek() {
+    this.showScreen('nextweek');
+    document.getElementById('weekTitle').innerText = `第${this.week}週 終了`;
+
+    // 競争得点の計算 (競輪方式: 上がるほど上がりにくい)
+    let pointChange = 0;
+    const rank = this.lastRaceRank;
+    const gradeBonus = {IPPAN:0, GII:0.3, GI:0.6, SG:1.0};
+    const gb = gradeBonus[this.currentGrade.id] || 0;
+
+    if (rank === 1) {
+      pointChange = 2.0 + gb;
+    } else if (rank === 2) {
+      pointChange = 1.2 + gb * 0.7;
+    } else if (rank === 3) {
+      pointChange = 0.6 + gb * 0.5;
+    } else if (rank <= 5) {
+      pointChange = 0.1;
+    } else {
+      pointChange = -0.5;
+    }
+
+    // 競輪方式: 高得点ほど上がりにくい (減衰係数)
+    if (pointChange > 0) {
+      const currentPts = this.competitionPoints;
+      const diminish = Math.max(0.15, 1.0 - (currentPts - 50) * 0.025);
+      pointChange *= diminish;
+    }
+
+    const oldPoints = this.competitionPoints;
+    this.competitionPoints = Math.max(40, Math.min(70, this.competitionPoints + pointChange));
+
+    let resultsHtml = `レース結果: <b>${rank}着</b><br>`;
+    resultsHtml += `グレード: ${this.currentGrade.name}<br>`;
+
+    const changeText = pointChange >= 0 ? `+${pointChange.toFixed(2)}` : pointChange.toFixed(2);
+    document.getElementById('weekPoints').innerText = this.competitionPoints.toFixed(2);
+    document.getElementById('pointChange').innerText = `変動: ${changeText} (${oldPoints.toFixed(2)} → ${this.competitionPoints.toFixed(2)})`;
+    document.getElementById('weekResults').innerHTML = resultsHtml;
+
+    // 昇格チェック
+    const promoEl = document.getElementById('promotionMsg');
+    const newGradeLabel = this.competitionPoints >= 58 ? 'SG級' : this.competitionPoints >= 55 ? 'GI級' : this.competitionPoints >= 52 ? 'GII級' : '一般級';
+    const oldGradeLabel = oldPoints >= 58 ? 'SG級' : oldPoints >= 55 ? 'GI級' : oldPoints >= 52 ? 'GII級' : '一般級';
+
+    if (newGradeLabel !== oldGradeLabel && this.competitionPoints > oldPoints) {
+      promoEl.style.display = 'block';
+      promoEl.innerHTML = `🎉 昇格! ${oldGradeLabel} → ${newGradeLabel}`;
+    } else if (newGradeLabel !== oldGradeLabel && this.competitionPoints < oldPoints) {
+      promoEl.style.display = 'block';
+      promoEl.style.color = '#e74c3c';
+      promoEl.style.background = 'rgba(231,76,60,0.1)';
+      promoEl.innerHTML = `⚠️ 降格... ${oldGradeLabel} → ${newGradeLabel}`;
+    } else {
+      promoEl.style.display = 'none';
+    }
+
+    this.updateAllUI();
+  }
+
+  advanceWeek() {
+    this.week++;
+    this.goTo('home');
+  }
+}
+
+/** レースエンジン */
+class RaceEngine {
+  constructor(entries, weather, onComplete) {
+    this.canvas = document.getElementById('raceCanvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.weather = weather;
+    this.onComplete = onComplete;
+    this.totalLaps = 6;
+    this.goalProgress = this.totalLaps;
+
+    this.racers = entries.map(e => ({
+      ...e,
+      x: 0, y: 0,
+      progress: -e.handi * 0.002,
+      lane: e.no - 1,
+      finished: false,
+      finishTime: 0,
+      lapTimes: [],
+      currentLap: 0,
+      staminaLeft: 1.0,
+      abilityUsed: false,
+      inspirationFrame: Math.floor(Math.random() * 400) + 100
+    }));
+
+    this.frame = 0;
+    this.results = [];
+    this.startTime = 0;
+    this.commentaryQueue = [];
+    this.lastCommentary = '';
+  }
+
+  run() {
+    this.startTime = performance.now();
+    const loop = () => {
+      if (this.results.length >= 9) {
+        setTimeout(() => this.onComplete(this.results), 1200);
+        return;
+      }
+      this.update();
+      this.draw();
+      this.frame++;
+      requestAnimationFrame(loop);
+    };
+    loop();
+  }
+
+  update() {
+    const phase = this.frame < 30 ? 'start' : this.frame < 200 ? 'mid' : 'final';
+
+    this.racers.forEach(r => {
+      if (r.finished) return;
+
+      // 基礎速度
+      let spd = (r.speed * 0.0003 + r.accel * 0.00025 + r.handling * 0.00015 + r.brake * 0.0001 + r.stability * 0.0001 + r.stamina * 0.0001);
+      spd *= r.condition;
+
+      // 天候影響
+      if (this.weather === 'wet') {
+        spd *= 0.88;
+        spd *= (1 + r.stability * 0.001);
+      }
+
+      // スタミナ消費
+      if (r.progress > this.goalProgress * 0.5) {
+        r.staminaLeft = Math.max(0.7, r.staminaLeft - 0.0003 * (1 - r.stamina * 0.005));
+        spd *= r.staminaLeft;
+      }
+
+      // 特殊能力
+      if (r.abilityEffect && !r.isPlayer) {
+        switch (r.abilityEffect) {
+          case 'rocketStart':
+            if (phase === 'start') spd *= 1.12;
+            break;
+          case 'finalBoost':
+            if (r.progress > this.goalProgress * 0.75) spd *= 1.05;
+            break;
+          case 'cornerBoost':
+            if (Math.sin(r.progress * Math.PI * 2) > 0.5) spd *= 1.04;
+            break;
+          case 'rainMaster':
+            if (this.weather === 'wet') spd *= 1.06;
+            break;
+          case 'ironWill':
+            if (r.progress > this.goalProgress * 0.5) r.staminaLeft = Math.min(1, r.staminaLeft + 0.0002);
+            break;
+          case 'intimidate':
+            // 周囲に影響 (自分以外の近いレーサーを減速)
+            if (phase === 'mid' && !r.abilityUsed) {
+              // handled below
+            }
+            break;
+          case 'stealthRun': {
+            const rank = this.getRank(r);
+            if (rank >= 4) spd *= 1.04;
+            break;
+          }
+          case 'thunderMode': {
+            const rank2 = this.getRank(r);
+            if (rank2 === 1) spd *= 1.03;
+            break;
+          }
+          case 'inspiration':
+            if (this.frame === r.inspirationFrame) {
+              r.speed *= 1.03; r.accel *= 1.03;
+            }
+            break;
+        }
+      }
+
+      // 威圧効果
+      if (phase === 'mid') {
+        const intimidator = this.racers.find(x => x.abilityEffect === 'intimidate' && !x.isPlayer);
+        if (intimidator && r !== intimidator) {
+          const dist = Math.abs(r.progress - intimidator.progress);
+          if (dist < 0.3) spd *= 0.98;
+        }
+      }
+
+      // ランダム変動
+      spd *= (1 + (Math.random() * 0.03 - 0.015));
+
+      r.progress += spd;
+
+      // ラップ計測
+      const newLap = Math.floor(r.progress);
+      if (newLap > r.currentLap && newLap <= this.totalLaps) {
+        r.currentLap = newLap;
+      }
+
+      // ゴール判定
+      if (r.progress >= this.goalProgress) {
+        r.finished = true;
+        r.finishTime = ((performance.now() - this.startTime) / 1000).toFixed(2);
+        this.results.push({ no: r.no, time: r.finishTime });
+      }
+    });
+
+    // 実況更新
+    this.updateCommentary(phase);
+  }
+
+  getRank(racer) {
+    const sorted = [...this.racers].sort((a, b) => b.progress - a.progress);
+    return sorted.indexOf(racer) + 1;
+  }
+
+  updateCommentary(phase) {
+    const box = document.getElementById('commentary');
+    const lead = [...this.racers].sort((a, b) => b.progress - a.progress)[0];
+    const second = [...this.racers].sort((a, b) => b.progress - a.progress)[1];
+    let text = '';
+
+    if (this.frame < 20) {
+      text = '📢 各車エンジン始動! ハンデラインに並びます...';
+    } else if (this.frame < 60) {
+      text = `📢 スタート! ${lead.no}号車 ${lead.name}が飛び出した!`;
+    } else if (phase === 'mid') {
+      const gap = (lead.progress - second.progress).toFixed(3);
+      text = `📢 ${lead.no}号車 ${lead.name}が先頭! 2番手${second.no}号車との差${gap}`;
+      if (lead.ability && !lead.isPlayer) {
+        text += ` [${lead.ability}発動中]`;
+      }
+    } else if (this.results.length > 0 && this.results.length < 9) {
+      text = `📢 ゴールイン! ${this.results.length}車がゴール通過!`;
+    }
+
+    if (text && text !== this.lastCommentary) {
+      box.innerText = text;
+      this.lastCommentary = text;
+    }
+  }
+
+  draw() {
+    const ctx = this.ctx;
+    const W = 1000, H = 500;
+    ctx.clearRect(0, 0, W, H);
+
+    // 背景
+    if (this.weather === 'wet') {
+      ctx.fillStyle = '#0a2a12';
+    } else {
+      ctx.fillStyle = '#0a3d18';
+    }
+    ctx.fillRect(0, 0, W, H);
+
+    // トラック描画
+    const cx = W / 2, cy = H / 2;
+    const outerRx = 420, outerRy = 200;
+    const innerRx = 300, innerRy = 100;
+
+    // トラック面
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, outerRx, outerRy, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#555';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, innerRx, innerRy, 0, 0, Math.PI * 2);
+    ctx.fillStyle = this.weather === 'wet' ? '#0a2a12' : '#0a3d18';
+    ctx.fill();
+
+    // レーンライン
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 10]);
+    for (let i = 0; i <= 9; i++) {
+      const t = i / 9;
+      const rx = innerRx + (outerRx - innerRx) * t;
+      const ry = innerRy + (outerRy - innerRy) * t;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // ゴールライン
+    const goalAngle = -Math.PI / 2;
+    const gx1 = cx + Math.cos(goalAngle) * innerRx;
+    const gy1 = cy + Math.sin(goalAngle) * innerRy;
+    const gx2 = cx + Math.cos(goalAngle) * outerRx;
+    const gy2 = cy + Math.sin(goalAngle) * outerRy;
+    ctx.strokeStyle = '#f1c40f';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(gx1, gy1);
+    ctx.lineTo(gx2, gy2);
+    ctx.stroke();
+    ctx.fillStyle = '#f1c40f';
+    ctx.font = 'bold 12px Arial';
+    ctx.fillText('GOAL', gx2 + 5, gy2 - 5);
+
+    // 雨エフェクト
+    if (this.weather === 'wet') {
+      ctx.strokeStyle = 'rgba(150,200,255,0.3)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 30; i++) {
+        const rx = Math.random() * W;
+        const ry = Math.random() * H;
+        ctx.beginPath();
+        ctx.moveTo(rx, ry);
+        ctx.lineTo(rx - 3, ry + 10);
+        ctx.stroke();
+      }
+    }
+
+    // レーサー描画
+    const sorted = [...this.racers].sort((a, b) => a.progress - b.progress);
+    sorted.forEach(r => {
+      const angle = (r.progress / this.totalLaps) * Math.PI * 2 - Math.PI / 2;
+      const laneT = r.lane / 8;
+      const rx = innerRx + 15 + (outerRx - innerRx - 30) * laneT;
+      const ry = innerRy + 8 + (outerRy - innerRy - 16) * laneT;
+
+      r.x = cx + Math.cos(angle) * rx;
+      r.y = cy + Math.sin(angle) * ry;
+
+      // 影
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(r.x + 3, r.y + 3, 7, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // バイク本体
+      ctx.fillStyle = r.color;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // 車番
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 9px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(r.no, r.x, r.y);
+
+      // プレイヤーマーカー
+      if (r.isPlayer) {
+        ctx.strokeStyle = '#f1c40f';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, 11, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // ゴール済み
+      if (r.finished) {
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = 'bold 10px Arial';
+        ctx.fillText('✓', r.x, r.y - 14);
+      }
+    });
+
+    // 順位表示
+    const ranking = [...this.racers].sort((a, b) => b.progress - a.progress);
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(10, 10, 130, ranking.length * 18 + 10);
+    ctx.font = 'bold 11px Arial';
+    ranking.forEach((r, i) => {
+      ctx.fillStyle = r.isPlayer ? '#f1c40f' : '#fff';
+      const lap = Math.min(r.currentLap, this.totalLaps);
+      ctx.textAlign = 'left';
+      ctx.fillText(`${i+1}. ${r.no}番 ${r.name.slice(0,4)} L${lap}`, 15, 25 + i * 18);
+    });
+
+    // ラップ表示
+    const playerRacer = this.racers.find(r => r.isPlayer);
+    if (playerRacer) {
+      const pLap = Math.min(playerRacer.currentLap, this.totalLaps);
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(W - 130, 10, 120, 30);
+      ctx.fillStyle = '#f1c40f';
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'right';
+      ctx.fillText(`LAP ${pLap} / ${this.totalLaps}`, W - 20, 30);
+    }
+  }
+}
+
+const game = new AutoRaceGame();
+</script>
+</body>
+</html>
